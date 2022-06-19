@@ -1,0 +1,9 @@
+docker build -t project-dev -f build/Dockerfile ./build
+
+docker run --gpus all -v PS C:\Users\Ben\GitHub\UdacitySelfDriving\ObjectDetection\:/app/project/ -p 8888:8888 -ti project-dev bash
+
+gcloud init --console-only
+
+jupyter notebook --ip 0.0.0.0 --no-browser --allow-root <file>
+
+Host machine access this url : localhost:8888/tree‌ 
