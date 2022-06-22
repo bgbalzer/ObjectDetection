@@ -20,6 +20,7 @@ def split(source, destination):
     # TODO: Implement function
 
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Split data into training / validation / testing')
     parser.add_argument('--source', required=True,
