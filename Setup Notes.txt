@@ -1,4 +1,4 @@
-docker build -t project-dev -f build/Dockerfile ./build
+docker build -t project-dev -f build/Dockerfile-Ben ./build
 
 docker run --gpus all -v C:\Users\Ben\GitHub\UdacitySelfDriving\ObjectDetection\:/app/project/ -p 8888:8888 -ti project-dev bash
 
