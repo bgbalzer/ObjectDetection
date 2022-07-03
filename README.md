@@ -8,9 +8,9 @@ I used my local setup, using a docker container running Ubuntu 20.04 with the fo
 * Tensorflow 2.5.0
 * Matplotlib 3.5.2
 * Numpy 1.19.5
-** Note: this had to be downgraded to 1.17.4 to be able to evaluate the model using the validation set
+  * Note: this had to be downgraded to 1.17.4 to be able to evaluate the model using the validation set
 * Keras 2.5.0rc0
-** Note: I had to downgrade Keras from what came in the provided dockerfile
+  * Note: I had to downgrade Keras from what came in the provided dockerfile
 
 ## Dataset
 This project uses data from the [Waymo Open Dataset](https://waymo.com/open/), downloaded using the following command:
@@ -77,7 +77,7 @@ with the number of classes changed to 3, the batch size reduced to 2, and with 2
 #### Results
 ![Reference Model Loss](./experiments/reference/loss.png)
 
-![Reference Model mAP] (./experiments/reference/mAP.png)
+![Reference Model mAP](./experiments/reference/mAP.png)
 
 ![Reference Model Recall](./experiments/reference/recall.png)
 
@@ -97,45 +97,41 @@ I explored both of these solutions first with the default learning rate of 0.04,
 * Architecture: SSD Resnet 50 640x640
 * Learning rate of 0.04
 * Augmentations:
-** Random grayscale conversion with probability of 0.1
-** Random brightness adjustment with max_delta 0.1
-** Random contrast adjustment with values between 0.6 and 1.0
-** Random cropping as used in the reference pretrained config 
+  * Random grayscale conversion with probability of 0.1
+  * Random brightness adjustment with max_delta 0.1
+  * Random contrast adjustment with values between 0.6 and 1.0
+  * Random cropping as used in the reference pretrained config 
 
 ![Experiment0 Model Loss](./experiments/experiment0/loss.png)
-
-![Experiment0 Model mAP] (./experiments/experiment0/mAP.png)
+![Experiment0 Model mAP](./experiments/experiment0/mAP.png)
 
 #### Experiment 1:
 * Architecture: Faster R-CNN ResNet50 V1 640x640
 * Learning rate of 0.04
 
 ![Experiment1 Model Loss](./experiments/experiment1/loss.png)
-
-![Experiment1 Model mAP] (./experiments/experiment1/mAP.png)
+![Experiment1 Model mAP](./experiments/experiment1/mAP.png)
 
 #### Experiment 2:
 * Architecture: SSD Resnet 50 640x640
 * Learning rate of 0.0004
 * Augmentations:
-** Random grayscale conversion with probability of 0.1
-** Random brightness adjustment with max_delta 0.1
-** Random contrast adjustment with values between 0.6 and 1.0
-** Random cropping as used in the reference pretrained config 
+  * Random grayscale conversion with probability of 0.1
+  * Random brightness adjustment with max_delta 0.1
+  * Random contrast adjustment with values between 0.6 and 1.0
+  * Random cropping as used in the reference pretrained config 
 
 ![Experiment2 Model Loss](./experiments/experiment2/loss.png)
-
-![Experiment2 Model mAP] (./experiments/experiment2/mAP.png)
+![Experiment2 Model mAP](./experiments/experiment2/mAP.png)
 
 #### Experiment 3:
 * Architecture: Faster R-CNN ResNet50 V1 640x640
 * Learning rate of 0.0004
 
 ![Experiment3 Model Loss](./experiments/experiment3/loss.png)
+![Experiment3 Model mAP](./experiments/experiment3/mAP.png)
 
-![Experiment3 Model mAP] (./experiments/experiment3/mAP.png)
-
-###Discussion
+### Discussion
 These experiments yielded mixed results, to say the least. One thing that absolutely helped in both cases was the lower learning rate, as seen by large jump in mAP in the last two experiments.
 Surprisingly, the data augmentations combined with the lower learning rate in experiment 2 produced a less generalizable model, with the loss from the validation set being ~0.4 higher than
 the training loss. I am not 100% sure why this could be, though I suspect one thing that could help is being smarter when creating the train/val splits, as perhaps an uneven amount of images
