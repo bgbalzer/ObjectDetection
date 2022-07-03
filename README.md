@@ -1,160 +1,139 @@
 # Object Detection in an Urban Environment
+On a fundamental level, all self driving cars need to have a precise and fast object detection and classification system in order to understand and reason about the world they 
+will be driving in. The goal of this project is to train a convolutional neural network (CNN) 640x640 model to be able to detect and classify pedestrians, cyclists, and vehicles 
+using data from the [Waymo Open Dataset](https://waymo.com/open/)
 
-## Data
+## Set up
+I used my local setup, using a docker container running Ubuntu 20.04 with the following core packages installed:
+* Tensorflow 2.5.0
+* Matplotlib 3.5.2
+* Numpy 1.19.5
+** Note: this had to be downgraded to 1.17.4 to be able to evaluate the model using the validation set
+* Keras 2.5.0rc0
+** Note: I had to downgrade Keras from what came in the provided dockerfile
 
-For this project, we will be using data from the [Waymo Open dataset](https://waymo.com/open/).
-
-[OPTIONAL] - The files can be downloaded directly from the website as tar files or from the [Google Cloud Bucket](https://console.cloud.google.com/storage/browser/waymo_open_dataset_v_1_2_0_individual_files/) as individual tf records. We have already provided the data required to finish this project in the workspace, so you don't need to download it separately.
-
-## Structure
-
-### Data
-
-The data you will use for training, validation and testing is organized as follow:
+## Dataset
+This project uses data from the [Waymo Open Dataset](https://waymo.com/open/), downloaded using the following command:
 ```
-/home/workspace/data/waymo
-    - training_and_validation - contains 97 files to train and validate your models
-    - train: contain the train data (empty to start)
-    - val: contain the val data (empty to start)
-    - test - contains 3 files to test your model and create inference videos
-```
-
-The `training_and_validation` folder contains file that have been downsampled: we have selected one every 10 frames from 10 fps videos. The `testing` folder contains frames from the 10 fps video without downsampling.
-
-You will split this `training_and_validation` data into `train`, and `val` sets by completing and executing the `create_splits.py` file.
-
-### Experiments
-The experiments folder will be organized as follow:
-```
-experiments/
-    - pretrained_model/
-    - exporter_main_v2.py - to create an inference model
-    - model_main_tf2.py - to launch training
-    - reference/ - reference training with the unchanged config file
-    - experiment0/ - create a new folder for each experiment you run
-    - experiment1/ - create a new folder for each experiment you run
-    - experiment2/ - create a new folder for each experiment you run
-    - label_map.pbtxt
-    ...
+python download_process.py --data_dir ./data --size 100
 ```
 
-## Prerequisites
+### Dataset analysis
+Before jumping in to any training, some exploratory data analysis is important to do in order to get an understanding of some of the properties of the dataset. The code in the 
+'Exploratory Data Analysis.ipynb' Jupyter notebook shows visualizations of example images from the dataset, which reveal that the data was collected in a variety of light and weather 
+conditions.
 
-### Local Setup
+Example Daytime Image   |  Example Nigthtime Image
+:----------------------------:|:-------------------------:
+![EDA](./media/sunny_EDA.png)  | ![EDA](./media/night_EDA.png) 
+:-----------------------------------------------------------------------:|
+Example Rainy Image
+:-----------------------------------------------------------------------:|
+![EDA](./media/rainy_EDA.png) 
 
-For local setup if you have your own Nvidia GPU, you can use the provided Dockerfile and requirements in the [build directory](./build).
+In addition, these images show that there is a large spread in the types and density of objects in any given image. In the Jupyter notebook there is also code to get a handle on the 
+average classification distribution and density across all of the records, shown below:
 
-Follow [the README therein](./build/README.md) to create a docker container and install all prerequisites.
+![Class Distribution across TF Records](./media/class_distribution.png)
 
-### Download and process the data
+From the visualizations here, it is clear that this dataset presents a few challenges which will make it difficult to train a performant object detection model.
 
-**Note:** ”If you are using the classroom workspace, we have already completed the steps in the section for you. You can find the downloaded and processed files within the `/home/workspace/data/preprocessed_data/` directory. Check this out then proceed to the **Exploratory Data Analysis** part.
+1. The size of the dataset is relatively small, meaning that the model might overfit the training data.
+2. The variance in light and weather conditions means that there will be further challenges in achieving a generalizable model due to the increased variance
+3. The class distribution is skewed heavily in favor of vehicles, though there is a sizeable amount of pedestrians present as well. There are very few cyclists, meaning the model will
+not have a lot to go on when it comes to identifying them
 
-The first goal of this project is to download the data from the Waymo's Google Cloud bucket to your local machine. For this project, we only need a subset of the data provided (for example, we do not need to use the Lidar data). Therefore, we are going to download and trim immediately each file. In `download_process.py`, you can view the `create_tf_example` function, which will perform this processing. This function takes the components of a Waymo Tf record and saves them in the Tf Object Detection api format. An example of such function is described [here](https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/training.html#create-tensorflow-records). We are already providing the `label_map.pbtxt` file.
+The first two challenges can be solved by implementing data augmentations to increase the variability of the training set and therefore attempt to mitigate overfitting. The third challenge
+is more difficult to overcome, with the the easiest solution being just to download more data.
+*NOTE: The first two challenges can also be mitigated by being smart about splitting the test/train/val splits such that each split contains an equal proportion of sunny/rainy/nightime
+records. If I were to do this project again, I would definitely attempt to do this. As it is my splits were created rather naively, which I have taken into account in the discussion below*
 
-You can run the script using the following command:
+### Cross validation
+In order to understand how well the models generalize to new data, I created a 75/15/10 split for train/validation/test respectively. While this is generally accepted to be good practice, for
+this particular project, omitting the test set and splitting the data into 80/20 train/validation would have provided slightly better results. Unfortunately due to the time consuming nature
+of the training, the 75/15/10 split was used for all experiments to keep things consistent.
+
+The code for creating the splits can be run using the following command, which moved the data into three subdirectories in `./data` named `train`, `val`, and `test'.
 ```
-python download_process.py --data_dir {processed_file_location} --size {number of files you want to download}
-```
-
-You are downloading 100 files (unless you changed the `size` parameter) so be patient! Once the script is done, you can look inside your `data_dir` folder to see if the files have been downloaded and processed correctly.
-
-### Classroom Workspace
-
-In the classroom workspace, every library and package should already be installed in your environment. You will NOT need to make use of `gcloud` to download the images.
-
-## Instructions
-
-### Exploratory Data Analysis
-
-You should use the data already present in `/home/workspace/data/waymo` directory to explore the dataset! This is the most important task of any machine learning project. To do so, open the `Exploratory Data Analysis` notebook. In this notebook, your first task will be to implement a `display_instances` function to display images and annotations using `matplotlib`. This should be very similar to the function you created during the course. Once you are done, feel free to spend more time exploring the data and report your findings. Report anything relevant about the dataset in the writeup.
-
-Keep in mind that you should refer to this analysis to create the different spits (training, testing and validation).
-
-
-### Create the training - validation splits
-In the class, we talked about cross-validation and the importance of creating meaningful training and validation splits. For this project, you will have to create your own training and validation sets using the files located in `/home/workspace/data/waymo`. The `split` function in the `create_splits.py` file does the following:
-* create three subfolders: `/home/workspace/data/train/`, `/home/workspace/data/val/`, and `/home/workspace/data/test/`
-* split the tf records files between these three folders by symbolically linking the files from `/home/workspace/data/waymo/` to `/home/workspace/data/train/`, `/home/workspace/data/val/`, and `/home/workspace/data/test/`
-
-Use the following command to run the script once your function is implemented:
-```
-python create_splits.py --data-dir /home/workspace/data
+python create_splits.py --data-dir ./data
 ```
 
-### Edit the config file
-
-Now you are ready for training. As we explain during the course, the Tf Object Detection API relies on **config files**. The config that we will use for this project is `pipeline.config`, which is the config for a SSD Resnet 50 640x640 model. You can learn more about the Single Shot Detector [here](https://arxiv.org/pdf/1512.02325.pdf).
-
-First, let's download the [pretrained model](http://download.tensorflow.org/models/object_detection/tf2/20200711/ssd_resnet50_v1_fpn_640x640_coco17_tpu-8.tar.gz) and move it to `/home/workspace/experiments/pretrained_model/`.
-
-We need to edit the config files to change the location of the training and validation files, as well as the location of the label_map file, pretrained weights. We also need to adjust the batch size. To do so, run the following:
-```
-python edit_config.py --train_dir /home/workspace/data/train/ --eval_dir /home/workspace/data/val/ --batch_size 2 --checkpoint /home/workspace/experiments/pretrained_model/ssd_resnet50_v1_fpn_640x640_coco17_tpu-8/checkpoint/ckpt-0 --label_map /home/workspace/experiments/label_map.pbtxt
-```
-A new config file has been created, `pipeline_new.config`.
-
-### Training
-
-You will now launch your very first experiment with the Tensorflow object detection API. Move the `pipeline_new.config` to the `/home/workspace/experiments/reference` folder. Now launch the training process:
-* a training process:
+## Training
+In order to run the training code use the following:
 ```
 python experiments/model_main_tf2.py --model_dir=experiments/reference/ --pipeline_config_path=experiments/reference/pipeline_new.config
 ```
-Once the training is finished, launch the evaluation process:
-* an evaluation process:
+Unfortunately due to memory limitations, running the evaluation code could not be done in parallel to the training, and so was not able to be used to adjust the training hyperparameters
+while the model was being trained. The evaluation used the following code after the model was completely trained. In order to do so, the `checkpoint` file had to be modified to start at
+each of the checkpoints created during training.
+
 ```
 python experiments/model_main_tf2.py --model_dir=experiments/reference/ --pipeline_config_path=experiments/reference/pipeline_new.config --checkpoint_dir=experiments/reference/
 ```
 
-**Note**: Both processes will display some Tensorflow warnings, which can be ignored. You may have to kill the evaluation script manually using
-`CTRL+C`.
+### Reference experiment
+The baseline reference experiment uses the Single Shot Detector (SSD) Resnet 50 640x640 model found in the TF Detection model zoo [here](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md)
+with the number of classes changed to 3, the batch size reduced to 2, and with 25,000 optimization steps.
 
-To monitor the training, you can launch a tensorboard instance by running `python -m tensorboard.main --logdir experiments/reference/`. You will report your findings in the writeup.
+#### Results
+![Reference Model Loss](./experiments/reference/loss.png)
+![Reference Model mAP] (./experiments/reference/mAP.png)
+![Reference Model Recall](./experiments/reference/recall.png)
 
-### Improve the performances
+In all following figures, the orange represents the training performance and the blue represents the validation performance. From these results there are a few key takeaways:
+* The model seems to be overfitting the training data, given the higher loss in the validation set
+* The mAP is very low, likely due to the relatively small dataset provided
+* The loss curve has a few large jumps. This could be due to the learning rate being too high, or the batch size being too low, or both
 
-Most likely, this initial experiment did not yield optimal results. However, you can make multiple changes to the config file to improve this model. One obvious change consists in improving the data augmentation strategy. The [`preprocessor.proto`](https://github.com/tensorflow/models/blob/master/research/object_detection/protos/preprocessor.proto) file contains the different data augmentation method available in the Tf Object Detection API. To help you visualize these augmentations, we are providing a notebook: `Explore augmentations.ipynb`. Using this notebook, try different data augmentation combinations and select the one you think is optimal for our dataset. Justify your choices in the writeup.
+### Improvements
+I attempted to improve upon the performance in two main ways. First is data augmentation, which we can use to increase the size and variability of the training set, leading to a more 
+generalizable model. The second was to switch to a faster R-CNN base architecture, which, while slower, theoretically performs better for object detection tasks. 
 
-Keep in mind that the following are also available:
-* experiment with the optimizer: type of optimizer, learning rate, scheduler etc
-* experiment with the architecture. The Tf Object Detection API [model zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md) offers many architectures. Keep in mind that the `pipeline.config` file is unique for each architecture and you will have to edit it.
+![Example of Grayscale Augmentation](./media/grayscale_aug.png)
 
-**Important:** If you are working on the workspace, your storage is limited. You may to delete the checkpoints files after each experiment. You should however keep the `tf.events` files located in the `train` and `eval` folder of your experiments. You can also keep the `saved_model` folder to create your videos.
+I explored both of these solutions first with the default learning rate of 0.04, and then with a much smaller learning rate of 0.0004.
+#### Experiment 0:
+* Architecture: SSD Resnet 50 640x640
+* Learning rate of 0.04
+* Augmentations:
+** Random grayscale conversion with probability of 0.1
+** Random brightness adjustment with max_delta 0.1
+** Random contrast adjustment with values between 0.6 and 1.0
+** Random cropping as used in the reference pretrained config 
+![Experiment0 Model Loss](./experiments/experiment0/loss.png)
+![Experiment0 Model mAP] (./experiments/experiment0/mAP.png)
 
+#### Experiment 1:
+* Architecture: Faster R-CNN ResNet50 V1 640x640
+* Learning rate of 0.04
+![Experiment1 Model Loss](./experiments/experiment1/loss.png)
+![Experiment1 Model mAP] (./experiments/experiment1/mAP.png)
 
-### Creating an animation
-#### Export the trained model
-Modify the arguments of the following function to adjust it to your models:
+#### Experiment 2:
+* Architecture: SSD Resnet 50 640x640
+* Learning rate of 0.0004
+* Augmentations:
+** Random grayscale conversion with probability of 0.1
+** Random brightness adjustment with max_delta 0.1
+** Random contrast adjustment with values between 0.6 and 1.0
+** Random cropping as used in the reference pretrained config 
+![Experiment2 Model Loss](./experiments/experiment2/loss.png)
+![Experiment2 Model mAP] (./experiments/experiment2/mAP.png)
 
-```
-python experiments/exporter_main_v2.py --input_type image_tensor --pipeline_config_path experiments/reference/pipeline_new.config --trained_checkpoint_dir experiments/reference/ --output_directory experiments/reference/exported/
-```
+#### Experiment 3:
+* Architecture: Faster R-CNN ResNet50 V1 640x640
+* Learning rate of 0.0004
+![Experiment3 Model Loss](./experiments/experiment3/loss.png)
+![Experiment3 Model mAP] (./experiments/experiment3/mAP.png)
 
-This should create a new folder `experiments/reference/exported/saved_model`. You can read more about the Tensorflow SavedModel format [here](https://www.tensorflow.org/guide/saved_model).
+###Discussion
+These experiments yielded mixed results, to say the least. One thing that absolutely helped in both cases was the lower learning rate, as seen by large jump in mAP in the last two experiments.
+Surprisingly, the data augmentations combined with the lower learning rate in experiment 2 produced a less generalizable model, with the loss from the validation set being ~0.4 higher than
+the training loss. I am not 100% sure why this could be, though I suspect one thing that could help is being smarter when creating the train/val splits, as perhaps an uneven amount of images
+with poor lighting conditions ended up in one or the other, thus resulting in overfitting to one type of lighting condition. This is one of the key takeaways I believe, and something that I
+would do better if I were to repeat this project.
 
-Finally, you can create a video of your model's inferences for any tf record file. To do so, run the following command (modify it to your files):
-```
-python inference_video.py --labelmap_path label_map.pbtxt --model_path experiments/reference/exported/saved_model --tf_record_path /data/waymo/testing/segment-12200383401366682847_2552_140_2572_140_with_camera_labels.tfrecord --config_path experiments/reference/pipeline_new.config --output_path animation.gif
-```
-
-## Submission Template
-
-### Project overview
-This section should contain a brief description of the project and what we are trying to achieve. Why is object detection such an important component of self driving car systems?
-
-### Set up
-This section should contain a brief description of the steps to follow to run the code for this repository.
-
-### Dataset
-#### Dataset analysis
-This section should contain a quantitative and qualitative description of the dataset. It should include images, charts and other visualizations.
-#### Cross validation
-This section should detail the cross validation strategy and justify your approach.
-
-### Training
-#### Reference experiment
-This section should detail the results of the reference experiment. It should includes training metrics and a detailed explanation of the algorithm's performances.
-
-#### Improve on the reference
-This section should highlight the different strategies you adopted to improve your model. It should contain relevant figures and details of your findings.
+Faster R-CNN  with a lowered learning rate produced results which appear to be more generalizable, however the loss function jumps around so much that it is hard to verify how
+close the loss from the validation set is compared with the training loss. This high amount of fluctuation could indicate that the learning rate needs to be even lower, with perhaps a larger
+number of optimization steps to compensate. Increasing the batch size might also help with the fluctuating loss, however this was not possible due to memory limitations. This is another aspect
+which I would change if I were to continue attempting to make a better and better model, is to work with a higher powered machine capable of handling large batch sizes and more optimization steps.
