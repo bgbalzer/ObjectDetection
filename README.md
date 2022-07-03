@@ -23,12 +23,9 @@ Before jumping in to any training, some exploratory data analysis is important t
 'Exploratory Data Analysis.ipynb' Jupyter notebook shows visualizations of example images from the dataset, which reveal that the data was collected in a variety of light and weather 
 conditions.
 
-Example Daytime Image   |  Example Nigthtime Image
-:----------------------------:|:---------------------------------------:
-![EDA](./media/sunny_EDA.png)  | ![EDA](./media/night_EDA.png) 
-Example Rainy Image
-
-![EDA](./media/rainy_EDA.png) 
+Example Daytime Image   |  Example Nigthtime Image | Example Rainy Image
+:----------------------------:|:--------------------------------:|:--------------------------------:
+![EDA](./media/sunny_EDA.png)  | ![EDA](./media/night_EDA.png) | ![EDA](./media/rainy_EDA.png) 
 
 In addition, these images show that there is a large spread in the types and density of objects in any given image. In the Jupyter notebook there is also code to get a handle on the 
 average classification distribution and density across all of the records, shown below:
@@ -44,6 +41,7 @@ not have a lot to go on when it comes to identifying them
 
 The first two challenges can be solved by implementing data augmentations to increase the variability of the training set and therefore attempt to mitigate overfitting. The third challenge
 is more difficult to overcome, with the the easiest solution being just to download more data.
+
 *NOTE: The first two challenges can also be mitigated by being smart about splitting the test/train/val splits such that each split contains an equal proportion of sunny/rainy/nightime
 records. If I were to do this project again, I would definitely attempt to do this. As it is my splits were created rather naively, which I have taken into account in the discussion below*
 
