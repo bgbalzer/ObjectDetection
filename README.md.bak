@@ -77,7 +77,9 @@ with the number of classes changed to 3, the batch size reduced to 2, and with 2
 
 #### Results
 ![Reference Model Loss](./experiments/reference/loss.png)
+
 ![Reference Model mAP] (./experiments/reference/mAP.png)
+
 ![Reference Model Recall](./experiments/reference/recall.png)
 
 In all following figures, the orange represents the training performance and the blue represents the validation performance. From these results there are a few key takeaways:
@@ -100,13 +102,17 @@ I explored both of these solutions first with the default learning rate of 0.04,
 ** Random brightness adjustment with max_delta 0.1
 ** Random contrast adjustment with values between 0.6 and 1.0
 ** Random cropping as used in the reference pretrained config 
+
 ![Experiment0 Model Loss](./experiments/experiment0/loss.png)
+
 ![Experiment0 Model mAP] (./experiments/experiment0/mAP.png)
 
 #### Experiment 1:
 * Architecture: Faster R-CNN ResNet50 V1 640x640
 * Learning rate of 0.04
+
 ![Experiment1 Model Loss](./experiments/experiment1/loss.png)
+
 ![Experiment1 Model mAP] (./experiments/experiment1/mAP.png)
 
 #### Experiment 2:
@@ -117,13 +123,17 @@ I explored both of these solutions first with the default learning rate of 0.04,
 ** Random brightness adjustment with max_delta 0.1
 ** Random contrast adjustment with values between 0.6 and 1.0
 ** Random cropping as used in the reference pretrained config 
+
 ![Experiment2 Model Loss](./experiments/experiment2/loss.png)
+
 ![Experiment2 Model mAP] (./experiments/experiment2/mAP.png)
 
 #### Experiment 3:
 * Architecture: Faster R-CNN ResNet50 V1 640x640
 * Learning rate of 0.0004
+
 ![Experiment3 Model Loss](./experiments/experiment3/loss.png)
+
 ![Experiment3 Model mAP] (./experiments/experiment3/mAP.png)
 
 ###Discussion

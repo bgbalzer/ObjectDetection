@@ -24,11 +24,10 @@ Before jumping in to any training, some exploratory data analysis is important t
 conditions.
 
 Example Daytime Image   |  Example Nigthtime Image
-:----------------------------:|:-------------------------:
+:----------------------------:|:---------------------------------------:
 ![EDA](./media/sunny_EDA.png)  | ![EDA](./media/night_EDA.png) 
-:-----------------------------------------------------------------------:|
 Example Rainy Image
-:-----------------------------------------------------------------------:|
+
 ![EDA](./media/rainy_EDA.png) 
 
 In addition, these images show that there is a large spread in the types and density of objects in any given image. In the Jupyter notebook there is also code to get a handle on the 
